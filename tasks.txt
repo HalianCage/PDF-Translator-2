@@ -1,0 +1,9 @@
+1) Resolve the Translation issue. - DONE
+2) Add a loading page and make it so that the application seems to be loading in the frontend the translation model is being loaded. - DONE
+3) Add the Legend Part
+4) Resolve the issue with backend bundling
+3) Update the UI. Make sure to add a loading bar.
+
+
+--- Line to add in tauri.conf.json for build ---
+"externalBin": ["../../backend/dist/backend_server.exe"]
