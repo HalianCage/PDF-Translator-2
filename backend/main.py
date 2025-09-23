@@ -132,7 +132,6 @@ def translate_chinese_to_english(chinese_text_data):
     return translated_data
 
 
-
 # Helper function to get the optimal font size for fitting translations
 def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12):
     text_len_at_size_1 = fitz.get_text_length(text, fontname=fontname, fontsize=1)
@@ -142,26 +141,94 @@ def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12):
     return min(int(optimal_size), max_fontsize)
 
 
-# Function to Overlay the solid boxes and translations & create a new PDF
-def create_translated_pdf(doc, translated_data, output_path):
+# NEW: Data enrichment to decide display text and build legend terms
+from legends_util import refine_abbreviation  # type: ignore
+
+def prepare_display_data(translated_data):
+    """
+    Enrich translated items by deciding whether to display full text or an abbreviation,
+    and collect legend terms for any abbreviated entries.
+
+    Input: translated_data (list of dicts from translate_chinese_to_english)
+    Output: (enriched_translated_data, legend_terms)
+    - enriched_translated_data: list with additional 'display_text' per item
+    - legend_terms: dict mapping {code: full term}
+    """
+    legend_terms = {}
+    used_codes = {}
+    enriched = []
+
+    for item in translated_data:
+        english = (item.get("english_translation") or "").strip()
+        display_text = english
+        # Simple heuristic: abbreviate if longer than 2 words
+        if len(english.split()) > 2:
+            code = refine_abbreviation(english, used_codes, max_len=4)
+            display_text = code
+            legend_terms[code] = english
+        enriched.append({**item, "display_text": display_text})
+
+    return enriched, legend_terms
+
+
+# UPDATED: Create translated document in memory using display_text field
+
+def create_translated_doc_in_memory(doc, enriched_translated_data):
+    """
+    Build a translated PDF (vector-first) in memory. Instead of writing to disk, return the fitz.Document.
+    Uses 'display_text' for overlayed content (may be full term or abbreviation).
+    """
     output_doc = fitz.open()
     for page_num in range(doc.page_count):
         page = doc[page_num]
         output_page = output_doc.new_page(width=page.rect.width, height=page.rect.height)
         output_page.show_pdf_page(page.rect, doc, page_num)
-        for item in translated_data:
+        for item in enriched_translated_data:
             if item["page"] == page_num:
                 original_bbox = fitz.Rect(item["bbox"])
-                english_text = item["english_translation"]
-                if english_text:
+                display_text = item.get("display_text", item.get("english_translation", ""))
+                if display_text:
                     output_page.draw_rect(original_bbox, color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
-                    best_fsize = get_optimal_fontsize(original_bbox, english_text)
+                    best_fsize = get_optimal_fontsize(original_bbox, display_text)
                     output_page.insert_textbox(
-                        original_bbox, english_text, fontsize=best_fsize, fontname="helv",
+                        original_bbox, display_text, fontsize=best_fsize, fontname="helv",
                         color=(0, 0, 0), align=fitz.TEXT_ALIGN_CENTER, overlay=True
                     )
-    output_doc.save(output_path)
-    output_doc.close()
+    return output_doc
+
+
+# NEW: Assemble translated pages and legend pages side-by-side into a final PDF file
+from legends_util import create_legend_pdf_page  # type: ignore
+
+def assemble_final_pdf(translated_doc, legend_doc, output_path):
+    """
+    Assemble each translated page with a corresponding legend page on the right
+    into a new, wider final PDF, and save to output_path.
+    """
+    final_doc = fitz.open()
+
+    # Assume single-page legend reused for each page; size defines legend panel width
+    legend_page = legend_doc[0] if legend_doc and legend_doc.page_count > 0 else None
+
+    for i in range(translated_doc.page_count):
+        t_page = translated_doc[i]
+        t_rect = t_page.rect
+        l_rect = legend_page.rect if legend_page else fitz.Rect(0, 0, 0, t_rect.height)
+        new_width = t_rect.width + l_rect.width
+        new_height = max(t_rect.height, l_rect.height)
+        new_page = final_doc.new_page(width=new_width, height=new_height)
+
+        # Stamp translated page at left
+        new_page.show_pdf_page(fitz.Rect(0, 0, t_rect.width, t_rect.height), translated_doc, i)
+
+        # Stamp legend page at right (if exists)
+        if legend_page:
+            new_page.show_pdf_page(
+                fitz.Rect(t_rect.width, 0, t_rect.width + l_rect.width, l_rect.height), legend_doc, 0
+            )
+
+    final_doc.save(output_path)
+    final_doc.close()
 
 
 # ==============================================================================
@@ -188,9 +255,30 @@ def run_translation_task(job_id: str, pdf_path: str):
 
         # logger.info(f'logging all translations: {translated_data}\n')
         
+        # NEW: Enrich data and prepare legend terms
+        enriched_data, legend_terms = prepare_display_data(translated_data)
+        
         jobs[job_id]["status"] = "creating_pdf"
         output_path = pdf_path.replace(".pdf", "_translated.pdf")
-        create_translated_pdf(doc, translated_data, output_path)
+
+        # Build translated document in memory
+        translated_doc = create_translated_doc_in_memory(doc, enriched_data)
+
+        if legend_terms:
+            # Create legend doc (single page) sized to match translated page height with a reasonable width
+            first_page = translated_doc[0]
+            page_height = first_page.rect.height
+            legend_width = max(180, first_page.rect.width * 0.35)
+            legend_doc = create_legend_pdf_page(legend_terms, page_height=page_height, page_width=legend_width)
+            
+            # Assemble final output with legend panel
+            assemble_final_pdf(translated_doc, legend_doc, output_path)
+            translated_doc.close()
+            legend_doc.close()
+        else:
+            # No legend needed; save translated_doc directly
+            translated_doc.save(output_path)
+            translated_doc.close()
 
         # Mark the job as complete and store the result path
         jobs[job_id]["status"] = "complete"
