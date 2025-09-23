@@ -5,13 +5,19 @@ import TranslatorPage from './components/TranslatorPage';
 
 // A simple component to display a fatal error
 const ErrorDisplay = ({ message }) => (
-  <div style={{ textAlign: 'center', margin: '50px', fontFamily: 'sans-serif' }}>
-    <h1>❌ Application Error</h1>
-    <p>Could not connect to the backend server.</p>
-    <p>Please ensure the backend is running correctly and try restarting the application.</p>
-    <pre style={{ background: '#f0f0f0', padding: '10px', borderRadius: '5px', color: '#c7254e' }}>
-      {message}
-    </pre>
+  <div className="app-root">
+    <div className="card error-card">
+      <div className="card-header">
+        <h1 className="app-title">Application Error</h1>
+        <p className="app-subtitle">Could not connect to the backend server.</p>
+      </div>
+      <div className="card-content">
+        <p>Please ensure the backend is running correctly and try restarting the application.</p>
+        <pre className="error-log">
+          {message}
+        </pre>
+      </div>
+    </div>
   </div>
 );
 
@@ -70,7 +76,7 @@ function App() {
   }
 
   return (
-    <div>
+    <div className="app-root">
       {isBackendReady ? <TranslatorPage /> : <LoadingScreen />}
     </div>
   );

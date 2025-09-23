@@ -1,6 +1,7 @@
 // frontend/src/components/TranslatorPage.jsx
 import React, { useState, useRef } from 'react';
 import '../App.css'; // Reuse the main App.css for styling
+import appIcon from '../../public/PDF-Translation-App-Icon-2.jpg';
 
 const TranslatorPage = () => {
   // All the state and functions from your previous App.jsx go here
@@ -93,14 +94,37 @@ const TranslatorPage = () => {
     };
     
   return (
-    <div className="container">
-      <h1>PDF Translator</h1>
-      <p>Upload a Chinese PDF to translate it to English.</p>
-      <input type="file" onChange={handleFileChange} accept=".pdf" disabled={isLoading} />
-      <button onClick={handleTranslate} disabled={isLoading || !selectedFile}>
-        {isLoading ? 'Processing...' : 'Translate'}
-      </button>
-      <p className="status">{status}</p>
+    <div className="card">
+      <div className="card-header">
+        <div className="brand-row">
+          <img src={appIcon} alt="App Icon" className="brand-logo" />
+          <div>
+            <h1 className="app-title">PDF Translator</h1>
+            <p className="app-subtitle">Upload a Chinese PDF to translate it to English.</p>
+          </div>
+        </div>
+      </div>
+      <div className="card-content">
+        <div className="container">
+          <div className="controls">
+            <div className="file-input">
+              <input type="file" onChange={handleFileChange} accept=".pdf" disabled={isLoading} />
+              <span className="helper">{selectedFile ? selectedFile.name : 'Select a PDF file (max ~200MB)'}</span>
+            </div>
+            <div className="actions">
+              <button className="btn" onClick={handleTranslate} disabled={isLoading || !selectedFile}>
+                {isLoading ? 'Processing…' : 'Translate'}
+              </button>
+            </div>
+          </div>
+          {isLoading && (
+            <div className="progress" aria-hidden="true">
+              <div className="progress-indicator"></div>
+            </div>
+          )}
+          <p className={`status ${isLoading ? 'working' : ''}`}>{status}</p>
+        </div>
+      </div>
     </div>
   );
 };
