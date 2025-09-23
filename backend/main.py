@@ -113,7 +113,6 @@ def is_likely_chinese(text):
 
 # Function to translate Chinese text to English
 def translate_chinese_to_english(chinese_text_data):
-    # ... (same as your original code)
     translated_data = []
     for i, item in enumerate(chinese_text_data):
         chinese_text = item["text"]
@@ -136,7 +135,6 @@ def translate_chinese_to_english(chinese_text_data):
 
 # Helper function to get the optimal font size for fitting translations
 def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12):
-    # ... (same as your original code)
     text_len_at_size_1 = fitz.get_text_length(text, fontname=fontname, fontsize=1)
     if text_len_at_size_1 == 0:
         return max_fontsize
@@ -146,7 +144,6 @@ def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12):
 
 # Function to Overlay the solid boxes and translations & create a new PDF
 def create_translated_pdf(doc, translated_data, output_path):
-    # ... (same as your original code, but uses output_path)
     output_doc = fitz.open()
     for page_num in range(doc.page_count):
         page = doc[page_num]
@@ -184,12 +181,12 @@ def run_translation_task(job_id: str, pdf_path: str):
         if not chinese_text_data:
             raise ValueError("No Chinese text found in the document.")
         
-        logger.info(f'Logging all filtered chinese text: {chinese_text_data}\n')
+        # logger.info(f'Logging all filtered chinese text: {chinese_text_data}\n')
 
         jobs[job_id]["status"] = "translating"
         translated_data = translate_chinese_to_english(chinese_text_data)
 
-        logger.info(f'logging all translations: {translated_data}\n')
+        # logger.info(f'logging all translations: {translated_data}\n')
         
         jobs[job_id]["status"] = "creating_pdf"
         output_path = pdf_path.replace(".pdf", "_translated.pdf")
