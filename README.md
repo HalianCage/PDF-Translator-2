@@ -10,6 +10,7 @@ A desktop application that translates Chinese text in PDF documents to English u
 - **Desktop App**: Cross-platform desktop application built with Tauri
 - **Offline Capable**: Works without internet connection using local ML models
 - **Background Processing**: Non-blocking translation with job status tracking
+- **Legend of Abbreviations (Vector-First)**: Automatically abbreviates long English terms and assembles a per-page legend panel without rasterizing pages
 
 ## 🏗️ Architecture
 
@@ -22,6 +23,7 @@ A desktop application that translates Chinese text in PDF documents to English u
 ### Backend (FastAPI + Python)
 - **FastAPI** for high-performance API server
 - **PyMuPDF (fitz)** for PDF text extraction and manipulation
+- **ReportLab** for vector legend table creation in-memory
 - **Transformers** for machine learning model integration
 - **Background task processing** with job status tracking
 
@@ -73,7 +75,7 @@ source venv/bin/activate
 #### Install Python Dependencies
 ```bash
 pip install fastapi uvicorn transformers torch torchvision torchaudio
-pip install pymupdf python-multipart
+pip install pymupdf python-multipart reportlab pikepdf
 pip install pyinstaller  # For building executable
 ```
 
@@ -174,6 +176,11 @@ The desktop application will be built in `frontend/src-tauri/target/release/`
    - "Step 3/3: Creating final PDF..."
 5. **Download**: The translated PDF will automatically download when complete
 
+### What’s New: Legend (Vector-First) Workflow
+- Long English phrases are abbreviated on-page; a legend panel lists `Code → Full Meaning`.
+- Everything is done in-memory and vector-based; no page rasterization.
+- Final output pages are widened to place the original translated content on the left and the legend panel on the right.
+
 ## 🛠️ API Endpoints
 
 ### Health Check
@@ -209,6 +216,7 @@ Download the translated PDF file.
 project_PDF_translator/
 ├── backend/                 # FastAPI backend
 │   ├── main.py             # Main server file
+│   ├── legends_util.py     # Legend helpers (vector-first table generation)
 │   ├── venv/               # Python virtual environment
 │   ├── dist/               # Built executables
 │   └── build/              # PyInstaller build files
@@ -217,6 +225,7 @@ project_PDF_translator/
 │   │   ├── App.jsx         # Main React component
 │   │   ├── components/     # React components
 │   │   └── assets/         # Static assets
+│   ├── public/             # Public assets (favicon)
 │   ├── src-tauri/          # Tauri configuration
 │   └── package.json        # Node.js dependencies
 ├── offline_model/          # ML model files
@@ -226,6 +235,25 @@ project_PDF_translator/
 ├── output_pdfs/            # Generated translated PDFs
 └── README.md              # This file
 ```
+
+## 🧠 Developer Notes (Backend)
+
+- Data preparation
+  - `prepare_display_data(translated_data)` in `backend/main.py`
+    - Adds `display_text` to each item (abbreviation if >2 words; otherwise full term)
+    - Builds `legend_terms = {code: full_term}` for all abbreviated items
+- Translation overlay (in-memory)
+  - `create_translated_doc_in_memory(doc, enriched_translated_data)`
+    - Overlays `display_text` into original bounding boxes and returns a `fitz.Document`
+- Legend creation (vector-first)
+  - `create_legend_pdf_page(legend_terms, page_height, page_width)` in `backend/legends_util.py`
+    - Builds a single-page legend PDF using ReportLab Table and returns a `fitz.Document`
+- Final assembly
+  - `assemble_final_pdf(translated_doc, legend_doc, output_path)`
+    - Creates a wider page per translated page: left = translated, right = legend
+- Abbreviation helper (no external deps)
+  - `refine_abbreviation(term, used_codes, max_len=4)`
+    - Generates unique codes via acronym/truncation with numeric suffixes if needed
 
 ## 🐛 Troubleshooting
 
@@ -246,7 +274,11 @@ project_PDF_translator/
    - Ensure the model files are complete and uncorrupted
    - Check backend logs for detailed error messages
 
-4. **Build issues**
+4. **Legend not appearing**
+   - Legends are only added if at least one translated string is longer than 4 words
+   - Verify `reportlab` is installed and importable in the backend environment
+
+5. **Build issues**
    - Ensure all dependencies are installed
    - Check that Rust toolchain is properly installed for Tauri
    - Verify PyInstaller is installed for backend builds
@@ -274,6 +306,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Tauri](https://tauri.app/) for the desktop application framework
 - [FastAPI](https://fastapi.tiangolo.com/) for the backend framework
 - [PyMuPDF](https://pymupdf.readthedocs.io/) for PDF processing
+- [ReportLab](https://www.reportlab.com/dev/docs/) for vector PDF table rendering
 
 ## 📞 Support
 

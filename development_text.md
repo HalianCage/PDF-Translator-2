@@ -59,3 +59,14 @@
 
 		**- A structurally similar data object to input argument, complete with the abbreviations passed to the overlaying function, so that it does not have to 		wait for legend creation, and generate the final pdf, which can then be stitched with the new legend.**
 
+
+
+
+
+
+
+## **Current Issues:**
+
+1. **The Short forms need to be limited to 3 letters, and include only aplhabets(use regex). - DONE**
+2. **The Short forms are not getting overlayed onto the PDF. Certainly the font size issue, same the one which occurred previously.**
+3. **Check out the no no no... translation issue.**

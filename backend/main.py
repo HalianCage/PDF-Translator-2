@@ -88,7 +88,7 @@ def extract_text_with_location(doc):
         for word in words:
             extracted_text_with_location.append({
                 "text": word[4],
-                "bbox": (word[0], word[1], word[2], word[3]),
+                "bbox": (word[0]-3, word[1]-3, word[2]+3, word[3]+3),
                 "page": page_num
             })
     return extracted_text_with_location
@@ -133,12 +133,35 @@ def translate_chinese_to_english(chinese_text_data):
 
 
 # Helper function to get the optimal font size for fitting translations
-def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12):
+# def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12):
+#     text_len_at_size_1 = fitz.get_text_length(text, fontname=fontname, fontsize=1)
+#     if text_len_at_size_1 == 0:
+#         return max_fontsize
+#     optimal_size = rect.width / text_len_at_size_1
+#     return min(int(optimal_size), max_fontsize)
+
+
+def get_optimal_fontsize(rect, text, fontname="helv", max_fontsize=12, line_height_factor=1.2):
+    """
+    Calculates the optimal font size to fit text within a rectangle,
+    considering BOTH width and height.
+    """
+    # 1. Calculate optimal size based on width (same as before)
+    width_optimal_size = max_fontsize
     text_len_at_size_1 = fitz.get_text_length(text, fontname=fontname, fontsize=1)
-    if text_len_at_size_1 == 0:
-        return max_fontsize
-    optimal_size = rect.width / text_len_at_size_1
+    if text_len_at_size_1 > 0:
+        width_optimal_size = rect.width / text_len_at_size_1
+
+    # 2. Calculate optimal size based on height
+    # The rendered height of a line of text is roughly fontsize * 1.2
+    height_optimal_size = rect.height / line_height_factor
+
+    # 3. The true optimal size is the SMALLER of the two constraints
+    optimal_size = min(width_optimal_size, height_optimal_size)
+
+    # 4. Return the final size, capped by the maximum allowed font size
     return min(int(optimal_size), max_fontsize)
+
 
 
 # NEW: Data enrichment to decide display text and build legend terms
@@ -161,9 +184,13 @@ def prepare_display_data(translated_data):
     for item in translated_data:
         english = (item.get("english_translation") or "").strip()
         display_text = english
-        # Simple heuristic: abbreviate if longer than 2 words
-        if len(english.split()) > 2:
-            code = refine_abbreviation(english, used_codes, max_len=4)
+        # Simple heuristic: abbreviate if longer than 4 words
+
+        original_bbox = fitz.Rect(item["bbox"])
+        max_fontsize_possible = get_optimal_fontsize(original_bbox, display_text)
+
+        if max_fontsize_possible < 5:
+            code = refine_abbreviation(english, used_codes)
             display_text = code
             legend_terms[code] = english
         enriched.append({**item, "display_text": display_text})
@@ -190,10 +217,12 @@ def create_translated_doc_in_memory(doc, enriched_translated_data):
                 if display_text:
                     output_page.draw_rect(original_bbox, color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
                     best_fsize = get_optimal_fontsize(original_bbox, display_text)
-                    output_page.insert_textbox(
+                    leftover = output_page.insert_textbox(
                         original_bbox, display_text, fontsize=best_fsize, fontname="helv",
                         color=(0, 0, 0), align=fitz.TEXT_ALIGN_CENTER, overlay=True
                     )
+
+                    print(f"display_text:{display_text}, leftover: {leftover}")
     return output_doc
 
 

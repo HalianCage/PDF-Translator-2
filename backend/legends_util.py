@@ -5,6 +5,7 @@
 # !pip install PyPDF2 pikepdf PyMuPDF reportlab python-abbreviate
 
 import fitz  # PyMuPDF
+import re
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import black, grey, whitesmoke
 from reportlab.platypus import Table, TableStyle, Paragraph
@@ -19,7 +20,7 @@ styleN.fontSize = 9
 styleN.wordWrap = 'CJK'
 
 
-def refine_abbreviation(term, used_codes, max_len=4):
+def refine_abbreviation(term, used_codes, max_len=3):
     """
     Generates a short, unique abbreviation for a given term without
     relying on any external libraries.
@@ -36,8 +37,15 @@ def refine_abbreviation(term, used_codes, max_len=4):
     # 1. Generate a candidate abbreviation
     words = term.split()
     if len(words) > 1:
-        # Create an acronym from the first letter of each word
-        candidate = "".join(w[0].upper() for w in words)
+        # Use regex to find the first alphabetic character in each word
+        acronym_parts = []
+        for word in words:
+            match = re.search(r'[a-zA-Z]', word)
+            if match:
+                acronym_parts.append(match.group(0).upper())
+                if len(acronym_parts) > 2:
+                    break
+        candidate = "".join(acronym_parts)
     else:
         # If it's a single word, truncate it
         candidate = term[:max_len].upper()
