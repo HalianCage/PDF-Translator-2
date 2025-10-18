@@ -99,7 +99,7 @@ const TranslatorPage = () => {
         <div className="brand-row">
           <img src={appIcon} alt="App Icon" className="brand-logo" />
           <div>
-            <h1 className="app-title">PDF Translator</h1>
+            <h1 className="app-title">Tranzient - Chinese PDF Translator</h1>
             <p className="app-subtitle">Upload a Chinese PDF to translate it to English.</p>
           </div>
         </div>

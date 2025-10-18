@@ -1,9 +1,10 @@
-1) Resolve the Translation issue. - DONE
-2) Add a loading page and make it so that the application seems to be loading in the frontend the translation model is being loaded. - DONE
-3) Add the Legend Part
-4) Resolve the issue with backend bundling
-3) Update the UI. Make sure to add a loading bar.
+1) Modularize the code
+2) Change the translation model. Make sure you have perfect translations before moving ahead.
+3) Implement Batch Processing
+4) Implement OCR to improve on the innaccuracies of vector text extraction
+5) Improve the UI of the product
+6) Create the hosted web version
+7) implement the native offline desktop version
 
 
---- Line to add in tauri.conf.json for build ---
-"externalBin": ["../../backend/dist/backend_server.exe"]
+Tranzient - Enabling Global Collaboration

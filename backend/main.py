@@ -189,7 +189,7 @@ def prepare_display_data(translated_data):
         original_bbox = fitz.Rect(item["bbox"])
         max_fontsize_possible = get_optimal_fontsize(original_bbox, display_text)
 
-        if max_fontsize_possible < 5:
+        if max_fontsize_possible < 4:
             code = refine_abbreviation(english, used_codes)
             display_text = code
             legend_terms[code] = english
@@ -215,11 +215,11 @@ def create_translated_doc_in_memory(doc, enriched_translated_data):
                 original_bbox = fitz.Rect(item["bbox"])
                 display_text = item.get("display_text", item.get("english_translation", ""))
                 if display_text:
-                    output_page.draw_rect(original_bbox, color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
+                    output_page.draw_rect(original_bbox, color=(1, 1, 1), fill=(1, 1, 1), overlay=True, )
                     best_fsize = get_optimal_fontsize(original_bbox, display_text)
                     leftover = output_page.insert_textbox(
                         original_bbox, display_text, fontsize=best_fsize, fontname="helv",
-                        color=(0, 0, 0), align=fitz.TEXT_ALIGN_CENTER, overlay=True
+                        color=(0, 0, 0), align=fitz.TEXT_ALIGN_LEFT, overlay=True
                     )
 
                     print(f"display_text:{display_text}, leftover: {leftover}")
